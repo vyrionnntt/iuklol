@@ -1823,6 +1823,9 @@ function Tab:Toggle(opts)
 
     local fromClick = false
     function self_:Set(value, silent)
+        if self_._locked then
+            return
+        end
         value = value == true
         if value == self_.Value then
             return
@@ -1849,7 +1852,7 @@ function Tab:Toggle(opts)
     end)
 
     local handle = finishElement(self, opts, self_, button, "Toggle")
-    if self_.Value then
+    if self_.Value and not self_._locked then
         safeCall(opts.Callback, true)
     end
     return handle
@@ -2094,6 +2097,9 @@ function Tab:Slider(opts)
     end
 
     function self_:Set(value, silent)
+        if self_._locked then
+            return
+        end
         value = snap(tonumber(value) or min)
         if value == self_.Value then
             return
@@ -2899,6 +2905,9 @@ function Tab:Dropdown(opts)
     end)
 
     function self_:Set(value, silent)
+        if self_._locked then
+            return
+        end
         selected = {}
         if multi then
             for _, item in ipairs(type(value) == "table" and value or { value }) do
@@ -3233,6 +3242,9 @@ function Tab:Keybind(opts)
     end
 
     function self_:Set(keyCode, silent)
+        if self_._locked then
+            return
+        end
         local wasListening = self_.Listening
         self_.Value = keyCode
         self_.Listening = false
@@ -3265,7 +3277,7 @@ function Tab:Keybind(opts)
             end
             return
         end
-        if not gameProcessed and self_.Value ~= nil and input.KeyCode == self_.Value then
+        if not gameProcessed and not self_._locked and self_.Value ~= nil and input.KeyCode == self_.Value then
             safeCall(opts.Callback, input.KeyCode)
         end
     end, self_)
@@ -3496,6 +3508,9 @@ function Tab:ColorPicker(opts)
     end
 
     function self_:Set(color, silent)
+        if self_._locked then
+            return
+        end
         hue, sat, val = Color3.toHSV(color)
         commit(0.25, silent)
         flashStroke(frameStroke)
@@ -3672,6 +3687,9 @@ function Tab:Stepper(opts)
         tween(plus, { TextTransparency = self_.Value >= max and 0.6 or 0 }, 0.15)
     end
     function self_:Set(value, silent)
+        if self_._locked then
+            return
+        end
         value = snap(tonumber(value) or min)
         if value == self_.Value then
             return
@@ -18500,13 +18518,21 @@ function Window:_buildMiniBar()
     end
     local gui = self.Gui
 
+    -- The compact pill stretches so the whole name fits: logo + name + the
+    -- live meter (clock / running count) on the right.
+    local nameWidth = #tostring(self.Title) * 8
+    pcall(function()
+        nameWidth = game:GetService("TextService"):GetTextSize(tostring(self.Title), 13, Enum.Font.GothamBold, Vector2.new(1000, 40)).X
+    end)
+    self._miniWidth = math.clamp(math.ceil(Mini.Height + 2 + nameWidth + 8 + 72), Mini.Width, 300)
+
     -- The island itself: a black pill hanging from the top of the screen. It
     -- is a canvas so its rounded shape clips whatever layer is showing.
     local island = create("CanvasGroup", {
         Name = "Island",
         AnchorPoint = Vector2.new(0.5, 0),
         Position = UDim2.new(0.5, 0, 0, Mini.Top),
-        Size = UDim2.fromOffset(Mini.Width, Mini.Height),
+        Size = UDim2.fromOffset(self._miniWidth, Mini.Height),
         BackgroundColor3 = Color3.new(0, 0, 0),
         BorderSizePixel = 0,
         GroupTransparency = 1,
@@ -19021,7 +19047,7 @@ function Window:_buildMiniBar()
         elseif name == "Activity" then
             return Vector2.new(Mini.Wide, math.floor(math.max(activityList.AbsoluteSize.Y, 34) + 26 + 0.5)), Mini.Radius
         end
-        return Vector2.new(Mini.Width, Mini.Height), Mini.Height / 2
+        return Vector2.new(self._miniWidth, Mini.Height), Mini.Height / 2
     end
 
     -- Where the island hangs: the top centre of its shape, as fractions of
@@ -19182,7 +19208,7 @@ function Window:_buildMiniBar()
         activityToken += 1
         islandScale.Scale = 1
         setMode("Compact", true)
-        local size = Vector2.new(Mini.Width, Mini.Height)
+        local size = Vector2.new(self._miniWidth, Mini.Height)
         local spot = islandSpot(size)
         return Vector2.new(spot.X - size.X / 2, spot.Y), size
     end
@@ -19238,7 +19264,7 @@ function Window:_buildMiniBar()
         tween(islandScale, { Scale = 0.95 }, 0.12, Enum.EasingStyle.Quad)
         if not self._islandLocked then
             dragFrom = Vector2.new(input.Position.X, input.Position.Y)
-            dragAnchor = islandSpot(Vector2.new(Mini.Width, Mini.Height))
+            dragAnchor = islandSpot(Vector2.new(self._miniWidth, Mini.Height))
         end
     end)
     self:_listen("Changed", function(input)
@@ -19255,7 +19281,7 @@ function Window:_buildMiniBar()
             setMode("Compact")
             tween(islandScale, { Scale = 1.06 }, 0.2, Enum.EasingStyle.Quint)
         end
-        local spot = islandSpot(Vector2.new(Mini.Width, Mini.Height), dragAnchor + delta)
+        local spot = islandSpot(Vector2.new(self._miniWidth, Mini.Height), dragAnchor + delta)
         local view = gui.AbsoluteSize
         self._islandAnchor = Vector2.new(spot.X / math.max(view.X, 1), spot.Y / math.max(view.Y, 1))
         if positionTween then
@@ -19276,10 +19302,10 @@ function Window:_buildMiniBar()
         if dragging then
             dragging = false
             local home = Vector2.new(gui.AbsoluteSize.X / 2, Mini.Top)
-            local spot = islandSpot(Vector2.new(Mini.Width, Mini.Height))
+            local spot = islandSpot(Vector2.new(self._miniWidth, Mini.Height))
             if (spot - home).Magnitude < 28 then
                 self._islandAnchor = nil
-                placeIsland(Vector2.new(Mini.Width, Mini.Height), 0.35, Enum.EasingStyle.Back)
+                placeIsland(Vector2.new(self._miniWidth, Mini.Height), 0.35, Enum.EasingStyle.Back)
             end
             local anchor = self._islandAnchor
             self:_writeConfigSettings({ IslandPosition = anchor and { X = anchor.X, Y = anchor.Y } or false })
