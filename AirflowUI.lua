@@ -139,6 +139,7 @@ Library.Theme = {
     Stroke = Color3.fromRGB(28, 44, 31),
     StrokeHover = Color3.fromRGB(50, 105, 65),
     Accent = Color3.fromRGB(50, 230, 150),
+    Accent2 = Color3.fromRGB(50, 230, 150),
     AccentDark = Color3.fromRGB(12, 28, 18),
     Text = Color3.fromRGB(235, 248, 238),
     Muted = Color3.fromRGB(115, 145, 125),
@@ -151,13 +152,14 @@ Library.Theme = {
 local THEME_KEYS = {
     "Accent", "AccentDark", "Background", "Surface", "Surface2", "Surface3",
     "Stroke", "StrokeHover", "Text", "Muted", "Warning", "Success", "Error",
+    "Accent2", -- al final: si es igual a Accent, gana Accent
 }
 
 local function rgb(r, g, b)
     return Color3.fromRGB(r, g, b)
 end
 
-local function preset(background, surface, surface2, surface3, strokeColor, strokeHover, accent, accentDark, text, muted)
+local function preset(background, surface, surface2, surface3, strokeColor, strokeHover, accent, accentDark, text, muted, accent2)
     return {
         Background = rgb(table.unpack(background)),
         Surface = rgb(table.unpack(surface)),
@@ -166,6 +168,7 @@ local function preset(background, surface, surface2, surface3, strokeColor, stro
         Stroke = rgb(table.unpack(strokeColor)),
         StrokeHover = rgb(table.unpack(strokeHover)),
         Accent = rgb(table.unpack(accent)),
+        Accent2 = rgb(table.unpack(accent2 or accent)),
         AccentDark = rgb(table.unpack(accentDark)),
         Text = rgb(table.unpack(text)),
         Muted = rgb(table.unpack(muted)),
@@ -176,10 +179,20 @@ Library.ThemePresets = {
     -- Colours here must not be pure white, pure black or any other colour the
     -- library hard-codes, or those objects would get bound to the theme.
     Vyrion = preset({ 12, 14, 12 }, { 16, 20, 17 }, { 22, 28, 23 }, { 32, 44, 34 }, { 28, 44, 31 }, { 50, 105, 65 }, { 50, 230, 150 }, { 12, 28, 18 }, { 235, 248, 238 }, { 115, 145, 125 }),
-    -- Temas propios: dos colores cada uno (acento + color secundario en bordes hover).
-    Eclipse = preset({ 15, 9, 22 }, { 21, 12, 30 }, { 28, 15, 39 }, { 46, 24, 62 }, { 42, 21, 56 }, { 205, 52, 84 }, { 178, 98, 255 }, { 30, 10, 44 }, { 244, 232, 250 }, { 140, 112, 160 }),
     Noir = preset({ 7, 7, 8 }, { 12, 12, 13 }, { 18, 18, 19 }, { 32, 32, 34 }, { 38, 38, 40 }, { 130, 130, 136 }, { 252, 252, 254 }, { 14, 14, 16 }, { 226, 226, 230 }, { 118, 118, 124 }),
-    Candy = preset({ 19, 13, 25 }, { 25, 17, 33 }, { 31, 22, 42 }, { 50, 36, 68 }, { 46, 33, 62 }, { 112, 196, 240 }, { 255, 128, 196 }, { 42, 12, 32 }, { 250, 236, 248 }, { 152, 128, 166 }),
+    -- Temas propios con dos colores (Accent + Accent2). Noir y Vyrion son de un solo color.
+    Eclipse = preset({ 14, 8, 20 }, { 25, 15, 35 }, { 33, 20, 47 }, { 57, 35, 82 }, { 50, 30, 72 }, { 134, 37, 59 }, { 164, 94, 255 }, { 23, 15, 34 }, { 240, 235, 248 }, { 109, 103, 116 }, { 255, 66, 98 }),
+    Candy = preset({ 20, 13, 27 }, { 35, 22, 42 }, { 47, 29, 55 }, { 82, 49, 88 }, { 72, 43, 77 }, { 66, 110, 141 }, { 255, 124, 192 }, { 34, 18, 27 }, { 247, 237, 244 }, { 115, 107, 118 }, { 112, 206, 255 }),
+    Cosmos = preset({ 9, 10, 24 }, { 17, 18, 40 }, { 23, 24, 53 }, { 41, 41, 90 }, { 36, 36, 79 }, { 44, 116, 140 }, { 124, 112, 255 }, { 18, 17, 34 }, { 237, 237, 248 }, { 105, 105, 118 }, { 78, 222, 255 }),
+    Inferno = preset({ 20, 10, 8 }, { 35, 17, 14 }, { 47, 23, 18 }, { 82, 40, 29 }, { 72, 35, 25 }, { 138, 104, 40 }, { 255, 98, 50 }, { 34, 15, 10 }, { 247, 236, 234 }, { 115, 105, 103 }, { 255, 198, 72 }),
+    Lagoon = preset({ 8, 20, 24 }, { 13, 34, 38 }, { 18, 45, 51 }, { 28, 78, 83 }, { 25, 68, 73 }, { 132, 71, 67 }, { 48, 222, 202 }, { 9, 30, 28 }, { 232, 244, 245 }, { 102, 114, 117 }, { 255, 122, 110 }),
+    Lavender = preset({ 18, 14, 27 }, { 30, 24, 44 }, { 41, 32, 58 }, { 69, 55, 97 }, { 60, 49, 85 }, { 136, 100, 90 }, { 190, 152, 255 }, { 26, 22, 34 }, { 242, 239, 248 }, { 112, 109, 120 }, { 255, 186, 152 }),
+    Neon = preset({ 9, 9, 15 }, { 21, 15, 28 }, { 30, 20, 37 }, { 59, 32, 67 }, { 52, 28, 59 }, { 36, 126, 135 }, { 255, 62, 222 }, { 34, 11, 30 }, { 247, 233, 246 }, { 109, 103, 112 }, { 62, 242, 255 }),
+    Venom = preset({ 10, 12, 10 }, { 19, 25, 16 }, { 26, 34, 22 }, { 47, 66, 34 }, { 41, 57, 30 }, { 91, 47, 132 }, { 152, 255, 62 }, { 22, 34, 11 }, { 239, 247, 235 }, { 106, 111, 104 }, { 172, 82, 255 }),
+    IceFire = preset({ 12, 14, 23 }, { 20, 26, 39 }, { 27, 35, 52 }, { 46, 62, 88 }, { 40, 55, 78 }, { 134, 73, 42 }, { 112, 202, 255 }, { 17, 28, 34 }, { 237, 243, 248 }, { 106, 110, 118 }, { 255, 132, 62 }),
+    Jade = preset({ 9, 19, 16 }, { 15, 33, 27 }, { 20, 44, 36 }, { 32, 75, 59 }, { 28, 66, 52 }, { 126, 110, 64 }, { 62, 222, 152 }, { 11, 30, 22 }, { 233, 244, 241 }, { 103, 114, 111 }, { 242, 202, 112 }),
+    Royal = preset({ 13, 12, 25 }, { 21, 21, 41 }, { 28, 28, 55 }, { 45, 47, 92 }, { 39, 41, 81 }, { 134, 107, 58 }, { 92, 122, 255 }, { 15, 18, 34 }, { 235, 237, 248 }, { 106, 106, 119 }, { 255, 202, 92 }),
+    Peach = preset({ 24, 15, 15 }, { 40, 26, 25 }, { 53, 34, 33 }, { 90, 59, 55 }, { 79, 52, 48 }, { 123, 74, 124 }, { 255, 162, 132 }, { 34, 23, 19 }, { 247, 240, 240 }, { 118, 110, 110 }, { 222, 132, 232 }),
     Midnight = preset({ 15, 18, 26 }, { 18, 22, 31 }, { 22, 26, 37 }, { 37, 44, 60 }, { 34, 40, 55 }, { 70, 84, 112 }, { 128, 160, 246 }, { 14, 18, 30 }, { 228, 232, 242 }, { 116, 126, 148 }),
     Ocean = preset({ 12, 20, 24 }, { 15, 24, 29 }, { 18, 29, 35 }, { 31, 48, 56 }, { 29, 44, 52 }, { 58, 92, 104 }, { 110, 214, 222 }, { 10, 24, 28 }, { 226, 238, 240 }, { 108, 134, 140 }),
     Rose = preset({ 22, 15, 18 }, { 27, 18, 22 }, { 32, 21, 26 }, { 48, 34, 40 }, { 45, 30, 37 }, { 98, 64, 78 }, { 246, 160, 186 }, { 30, 14, 20 }, { 240, 228, 232 }, { 138, 112, 120 }),
@@ -209,6 +222,41 @@ Library.ThemePresets = {
     Dracula = preset({ 24, 25, 33 }, { 29, 30, 40 }, { 34, 36, 47 }, { 52, 55, 70 }, { 48, 50, 64 }, { 98, 114, 164 }, { 189, 147, 249 }, { 26, 18, 44 }, { 246, 246, 238 }, { 126, 132, 168 }),
     Coffee = preset({ 20, 16, 13 }, { 25, 20, 16 }, { 30, 24, 19 }, { 48, 39, 31 }, { 45, 36, 29 }, { 104, 82, 62 }, { 214, 170, 124 }, { 32, 22, 12 }, { 240, 230, 218 }, { 142, 124, 108 }),
 }
+
+-- Segundo color de cada tema (degradados y detalles). Vyrion y Noir no tienen.
+for name, color in pairs({
+    Midnight = { 186, 140, 255 },
+    Ocean = { 92, 160, 255 },
+    Rose = { 255, 198, 140 },
+    Emerald = { 98, 212, 228 },
+    Amber = { 255, 132, 100 },
+    Mono = { 150, 172, 222 },
+    Nebula = { 92, 160, 255 },
+    Synthwave = { 90, 222, 255 },
+    Sakura = { 190, 160, 255 },
+    Velvet = { 242, 180, 122 },
+    Crimson = { 255, 150, 82 },
+    Sunset = { 255, 92, 152 },
+    Gold = { 255, 152, 92 },
+    Cyber = { 82, 222, 255 },
+    Toxic = { 82, 230, 202 },
+    Matcha = { 242, 222, 152 },
+    Aurora = { 122, 152, 255 },
+    Frost = { 222, 192, 255 },
+    Abyss = { 98, 222, 255 },
+    Halloween = { 172, 92, 255 },
+    Haunted = { 172, 112, 255 },
+    Christmas = { 98, 212, 132 },
+    Valentine = { 255, 122, 92 },
+    Lunar = { 255, 92, 82 },
+    Tropical = { 82, 222, 202 },
+    Dracula = { 255, 121, 198 },
+    Coffee = { 246, 214, 170 },
+}) do
+    if Library.ThemePresets[name] then
+        Library.ThemePresets[name].Accent2 = rgb(color[1], color[2], color[3])
+    end
+end
 
 Library.ThemeName = "Vyrion"
 Library.DefaultTheme = "Vyrion"
@@ -753,6 +801,32 @@ local function glow(parent, size, position, transparency, rotation)
         gradient.Color = ColorSequence.new(Color3.fromRGB(255, 255, 255), Theme.Accent)
     end)
     return image
+end
+
+-- Degradado Accent -> Accent2 que sigue al tema. El objeto debe ser blanco
+-- (sin ligar al tema) para que el degradado se vea con sus colores reales.
+function Library._accentGradient(target, rotation)
+    local gradient = create("UIGradient", { Rotation = rotation or 0, Parent = target })
+    onTheme(gradient, function()
+        gradient.Color = ColorSequence.new(Theme.Accent, Theme.Accent2)
+    end)
+    return gradient
+end
+
+-- Logo V con degradado del tema (encabezado, carga y pastilla).
+function Library._gradientLogo(image)
+    if Library._vLogo ~= true or typeof(image) ~= "Instance" then
+        return
+    end
+    local bound = themeBindings[image]
+    if bound then
+        bound.ImageColor3 = nil
+    end
+    image.ImageColor3 = Color3.new(1, 1, 1)
+    if not image:FindFirstChild("LogoGradient") then
+        Library._accentGradient(image, 45).Name = "LogoGradient"
+    end
+    image:SetAttribute("CustomIcon", true)
 end
 
 local function edgeHighlight(parent)
@@ -1552,6 +1626,15 @@ function Tab:Toggle(opts)
     })
     corner(pill, UDim.new(1, 0))
     stroke(pill, Theme.Stroke)
+    local pillAccent = create("Frame", {
+        Size = UDim2.fromScale(1, 1),
+        BackgroundColor3 = Color3.new(1, 1, 1),
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        Parent = pill,
+    })
+    corner(pillAccent, UDim.new(1, 0))
+    Library._accentGradient(pillAccent, 0)
 
     local knob = create("Frame", {
         AnchorPoint = Vector2.new(0, 0.5),
@@ -1581,6 +1664,7 @@ function Tab:Toggle(opts)
         local duration = animate and 0.25 or 0
         tween(pill, { BackgroundColor3 = on and Theme.Accent or Theme.Surface3 }, duration)
         tween(pillGlow, { ImageTransparency = on and 0.75 or 1 }, duration)
+        tween(pillAccent, { BackgroundTransparency = on and 0 or 1 }, duration)
         local knobSize = TOUCH and 18 or 14
         tween(knob, {
             Position = on and UDim2.new(0, (TOUCH and 44 or 36) - 3 - knobSize, 0.5, 0) or UDim2.new(0, 3, 0.5, 0),
@@ -1739,11 +1823,12 @@ function Tab:Slider(opts)
     corner(track, UDim.new(1, 0))
     local fill = create("Frame", {
         Size = UDim2.new(0, 0, 1, 0),
-        BackgroundColor3 = Theme.Accent,
+        BackgroundColor3 = Color3.new(1, 1, 1),
         BorderSizePixel = 0,
         Parent = track,
     })
     corner(fill, UDim.new(1, 0))
+    Library._accentGradient(fill, 0)
 
     local knobGlow = create("ImageLabel", {
         AnchorPoint = Vector2.new(0.5, 0.5),
@@ -1760,12 +1845,15 @@ function Tab:Slider(opts)
         AnchorPoint = Vector2.new(0.5, 0.5),
         Position = UDim2.new(0, 0, 0.5, 0),
         Size = UDim2.fromOffset(12, 12),
-        BackgroundColor3 = Theme.Accent,
+        BackgroundColor3 = Color3.new(1, 1, 1),
         BorderSizePixel = 0,
         ZIndex = 3,
         Parent = track,
     })
     corner(knob, UDim.new(1, 0))
+    onTheme(knob, function()
+        knob.BackgroundColor3 = Theme.Accent2
+    end)
 
     local hit = create("TextButton", {
         Position = UDim2.new(0, 8, 0, height - (compact and 13 or 18) - (TOUCH and 19 or 13)),
@@ -4544,6 +4632,7 @@ function Library.Window(_, opts)
         Parent = header,
     })
     applyIcon(logo, opts.Icon or Assets.Logo, true)
+    if (opts.Icon or Assets.Logo) == Assets.Logo then Library._gradientLogo(logo) end
     local subtitle = opts.Version or opts.Subtitle
     label({
         Position = UDim2.new(0, 56, 0.5, subtitle and -15 or -9),
@@ -5706,6 +5795,7 @@ function Window:_showLoader(opts)
         Parent = content,
     })
     applyIcon(logo, opts.Icon or Assets.Logo, true)
+    if (opts.Icon or Assets.Logo) == Assets.Logo then Library._gradientLogo(logo) end
     local TEXT_X = PAD + 42
     local titleLabel = label({
         Position = UDim2.fromOffset(TEXT_X, PAD - 2),
@@ -7552,7 +7642,11 @@ function Library:SetTheme(theme, instant)
     end
     local changed = false
     for _, name in ipairs(THEME_KEYS) do
-        local color = toColor(theme[name])
+        local value = theme[name]
+        if value == nil and name == "Accent2" then
+            value = theme.Accent -- temas sin segundo color: Accent2 = Accent
+        end
+        local color = toColor(value)
         if color and color ~= Theme[name] then
             Theme[name] = color
             changed = true
@@ -9323,7 +9417,7 @@ function Tab:ConfigManager(opts)
 end
 
 local PRESET_ORDER = {
-    "Vyrion", "Eclipse", "Noir", "Candy", "Midnight", "Nebula", "Synthwave", "Sakura", "Velvet", "Rose", "Crimson", "Sunset", "Amber", "Gold",
+    "Vyrion", "Noir", "Eclipse", "Candy", "Cosmos", "Inferno", "Lagoon", "Lavender", "Neon", "Venom", "IceFire", "Jade", "Royal", "Peach", "Midnight", "Nebula", "Synthwave", "Sakura", "Velvet", "Rose", "Crimson", "Sunset", "Amber", "Gold",
     "Cyber", "Toxic", "Matcha", "Emerald", "Aurora", "Ocean", "Frost", "Abyss", "Mono",
     "Halloween", "Haunted", "Christmas", "Valentine", "Lunar", "Tropical", "Dracula", "Coffee",
 }
@@ -18335,6 +18429,7 @@ function Window:_buildMiniBar()
         Parent = logoDisc,
     })
     applyIcon(logo, self._logoIcon, true)
+    if self._logoIcon == Assets.Logo then Library._gradientLogo(logo) end
     -- The script's name beside the logo, so the pill reads at a glance.
     local miniTitle = label({
         AnchorPoint = Vector2.new(0, 0.5),
