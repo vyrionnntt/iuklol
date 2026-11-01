@@ -1,5 +1,3 @@
--- AirFlow UI library (extraída de BloxStrike_Vyrion.lua, sin código de aimbot/ESP)
--- Uso: local Library = loadstring(readfile("AirflowUI.lua"))()
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local GuiService = game:GetService("GuiService")
@@ -286,7 +284,7 @@ local function loadLucide()
         lucideSet = result
     else
         lucideSet = false
-        warn("[AirFlow] lucide icons unavailable: " .. tostring(result))
+        warn("[VyrionUI] lucide icons unavailable: " .. tostring(result))
     end
     return lucideSet
 end
@@ -309,16 +307,16 @@ local FONT_WEIGHTS = {
 function Library:LoadFont(opts)
     opts = normalize(opts, {})
     if type(writefile) ~= "function" or type(isfile) ~= "function" or typeof(getcustomasset) ~= "function" then
-        warn("[AirFlow] custom fonts need writefile, isfile and getcustomasset")
+        warn("[VyrionUI] custom fonts need writefile, isfile and getcustomasset")
         return false
     end
     local name = opts.Name or "CustomFont"
     local weights = opts.Weights or FONT_PRESETS[name]
     if type(weights) ~= "table" then
-        warn("[AirFlow] no font weights for " .. name)
+        warn("[VyrionUI] no font weights for " .. name)
         return false
     end
-    local folder = opts.Folder or "AirFlowFonts"
+    local folder = opts.Folder or "VyrionFonts"
     pcall(function()
         if type(isfolder) == "function" and type(makefolder) == "function" and not isfolder(folder) then
             makefolder(folder)
@@ -338,7 +336,7 @@ function Library:LoadFont(opts)
             if ok then
                 table.insert(faces, { name = weightName, weight = info[1], style = "normal", assetId = getcustomasset(path) })
             else
-                warn("[AirFlow] could not download " .. weightName .. " weight of " .. name)
+                warn("[VyrionUI] could not download " .. weightName .. " weight of " .. name)
             end
         end
     end
@@ -416,7 +414,7 @@ local function resolveIcon(icon)
     elseif type(entry) == "string" then
         return entry
     end
-    warn("[AirFlow] unknown lucide icon: " .. name)
+    warn("[VyrionUI] unknown lucide icon: " .. name)
     return nil
 end
 
@@ -1121,7 +1119,7 @@ local function safeCall(callback, ...)
     end
     local ok, err = pcall(callback, ...)
     if not ok then
-        warn("[AirFlow] callback error: " .. tostring(err))
+        warn("[VyrionUI] callback error: " .. tostring(err))
     end
 end
 
@@ -1598,7 +1596,7 @@ function Tab:Label(opts)
                 if ok and value ~= nil then
                     text_.Text = Library._rich(value)
                 elseif not ok then
-                    warn("[AirFlow] label update error: " .. tostring(value))
+                    warn("[VyrionUI] label update error: " .. tostring(value))
                 end
                 task.wait(rate)
             end
@@ -4691,7 +4689,7 @@ function Library.Window(_, opts)
         _islandLocked = opts.IslandDraggable == false,
     }, Window)
     local saving = type(opts.ConfigurationSaving) == "table" and opts.ConfigurationSaving or {}
-    self.ConfigFolder = saving.FolderName or "AirflowUI"
+    self.ConfigFolder = saving.FolderName or "VyrionUI"
     self.ConfigName = saving.FileName
     self._configListeners = {}
     self._pendingFlags = {}
@@ -10465,7 +10463,7 @@ function Tab:Status(opts)
                     end
                     render(true)
                 else
-                    warn("[AirFlow] status update error: " .. tostring(value))
+                    warn("[VyrionUI] status update error: " .. tostring(value))
                 end
                 task.wait(rate)
             end
@@ -10821,7 +10819,7 @@ function Tab:StatusList(opts)
                             handle:Set(result)
                         end
                     else
-                        warn("[AirFlow] status list update error: " .. tostring(result))
+                        warn("[VyrionUI] status list update error: " .. tostring(result))
                     end
                 end
                 task.wait(rate)
@@ -10996,7 +10994,7 @@ function Tab:Image(opts)
             return false, "replaced by a newer image"
         end
         if not asset then
-            warn("[AirFlow] image: " .. tostring(err))
+            warn("[VyrionUI] image: " .. tostring(err))
             return false, err
         end
         image.ImageTransparency = 1
@@ -16272,7 +16270,7 @@ function Window:CloudConfigs(opts)
                     page -= 1
                 end
                 if not ok then
-                    warn("[AirFlow] cloud OnFetch error: " .. tostring(list))
+                    warn("[VyrionUI] cloud OnFetch error: " .. tostring(list))
                 end
                 hasMore = more and hasMore or false
                 moreButton.Visible = false
@@ -17146,7 +17144,7 @@ function Window:CloudConfigs(opts)
             submitText.Text = editing and "Save changes" or "Publish"
             if not ok or result == false then
                 if not ok then
-                    warn("[AirFlow] cloud publish error: " .. tostring(result))
+                    warn("[VyrionUI] cloud publish error: " .. tostring(result))
                 end
                 showError(ok and reason and tostring(reason) or "Something went wrong, try again")
                 return
@@ -20167,7 +20165,7 @@ function Window:Destroy()
         end
     end)
     if not ok then
-        warn("[AirFlow] unload animation failed, removing the window directly: " .. tostring(err))
+        warn("[VyrionUI] unload animation failed, removing the window directly: " .. tostring(err))
         remove()
         return
     end
