@@ -1269,6 +1269,41 @@ function Library._applyLock(element, frame, opts, kind)
     local defaultText, defaultIcon = "Locked", "lock"
     element._locked = false
 
+    -- Safety net: whatever path reaches a user callback (a hotkey, a config
+    -- load, a stray input), nothing runs while the element is locked.
+    for _, key in ipairs({ "Callback", "OnChanged", "OnRelease", "OnReorder" }) do
+        local original = opts[key]
+        if type(original) == "function" then
+            opts[key] = function(...)
+                if element._locked then
+                    return nil
+                end
+                return original(...)
+            end
+        end
+    end
+
+    -- Text boxes (inputs, the slider's value box) can't be focused or typed
+    -- into while locked.
+    local boxHooks = {}
+    local function lockBoxes(locked)
+        for _, object in ipairs(frame:GetDescendants()) do
+            if object:IsA("TextBox") then
+                if not boxHooks[object] then
+                    boxHooks[object] = object.Focused:Connect(function()
+                        if element._locked then
+                            object:ReleaseFocus()
+                        end
+                    end)
+                end
+                object.TextEditable = not locked
+                if locked and object:IsFocused() then
+                    object:ReleaseFocus()
+                end
+            end
+        end
+    end
+
     local spec = opts.Locked
     if type(spec) == "table" then
         defaultText = spec.Title or spec.Text or spec.Name or defaultText
@@ -1294,6 +1329,17 @@ function Library._applyLock(element, frame, opts, kind)
         })
         veil:SetAttribute("NoDrag", true)
         corner(veil)
+        -- A real button underneath the chip: it takes every click and touch.
+        create("TextButton", {
+            Name = "Sink",
+            Size = UDim2.fromScale(1, 1),
+            BackgroundTransparency = 1,
+            Text = "",
+            AutoButtonColor = false,
+            Active = true,
+            ZIndex = 59,
+            Parent = veil,
+        })
 
         local chip = create("Frame", {
             Name = "LockChip",
@@ -1360,6 +1406,7 @@ function Library._applyLock(element, frame, opts, kind)
         element._locked = locked
         token += 1
         local mine = token
+        lockBoxes(locked)
         if locked then
             if not veil then
                 build()
@@ -2022,6 +2069,9 @@ function Tab:Slider(opts)
         end
     end)
     chipButton.MouseButton1Click:Connect(function()
+        if self_._locked then
+            return
+        end
         editing = true
         valueBox.Text = numbers.format(self_.Value)
         valueLabel.Visible = false
@@ -2128,6 +2178,9 @@ function Tab:Slider(opts)
     end
 
     hit.InputBegan:Connect(function(input)
+        if self_._locked then
+            return
+        end
         if isPress(input) then
             dragging = true
             self_.Dragging = true
@@ -2680,6 +2733,9 @@ function Tab:Dropdown(opts)
         end
     end
     local function setOpen(open)
+        if open and self_._locked then
+            return
+        end
         if open == self_.Open then
             return
         end
@@ -3258,6 +3314,9 @@ function Tab:Keybind(opts)
     end
 
     chip.MouseButton1Click:Connect(function()
+        if self_._locked then
+            return
+        end
         self_.Listening = not self_.Listening
         render()
     end)
@@ -3521,6 +3580,9 @@ function Tab:ColorPicker(opts)
     end
 
     local function setOpen(open)
+        if open and self_._locked then
+            return
+        end
         self_.Open = open
         tween(frame, { Size = UDim2.new(1, 0, 0, open and (height + PANEL_HEIGHT) or height) }, 0.35, Enum.EasingStyle.Quint)
         arrow:Set(open)
@@ -3719,13 +3781,13 @@ function Tab:Stepper(opts)
     local function holdRepeat(button, direction)
         local holding = false
         button.InputBegan:Connect(function(input)
-            if not isPress(input) then
+            if not isPress(input) or self_._locked then
                 return
             end
             holding = true
             bump(direction)
             task.delay(0.4, function()
-                while holding do
+                while holding and not self_._locked do
                     bump(direction)
                     task.wait(0.07)
                 end
@@ -4193,7 +4255,7 @@ function Tab:OrderList(opts)
     end
 
     function nudge(entry, direction)
-        if dragging then
+        if dragging or self_._locked then
             return
         end
         local from = table.find(entries, entry)
@@ -4259,7 +4321,7 @@ function Tab:OrderList(opts)
     end
 
     function beginDrag(entry)
-        if dragging or #entries < 2 or self_._destroyed then
+        if dragging or self_._locked or #entries < 2 or self_._destroyed then
             return
         end
         dragging = entry
