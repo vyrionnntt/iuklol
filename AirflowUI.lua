@@ -13462,7 +13462,136 @@ function Window:_homeLink(card, order, icon, title, text, buttonIcon, callback)
     button.MouseButton1Click:Connect(function()
         safeCall(callback)
     end)
-    return row, titleLabel, textLabel
+    return row, titleLabel, textLabel, holder
+end
+
+-- ===== Discord: datos reales del servidor a partir de una invitación =====
+-- Descarga el contenido de una URL (usa request del executor y, si falla, HttpGet).
+function Library._download(url)
+    local requestFn = (typeof(request) == "function" and request)
+        or (typeof(http_request) == "function" and http_request)
+        or (syn and typeof(syn.request) == "function" and syn.request)
+        or nil
+    if requestFn then
+        local ok, res = pcall(requestFn, { Url = url, Method = "GET", Headers = { ["User-Agent"] = "Mozilla/5.0" } })
+        if ok and type(res) == "table" and res.StatusCode == 200 and type(res.Body) == "string" then
+            return res.Body
+        end
+    end
+    local ok, body = pcall(game.HttpGet, game, url)
+    if ok and type(body) == "string" and body ~= "" then
+        return body
+    end
+    return nil
+end
+
+-- Descarga una imagen y la convierte en asset de Roblox (necesita writefile + getcustomasset).
+function Library._downloadImage(url, fileName)
+    local getasset = (typeof(getcustomasset) == "function" and getcustomasset)
+        or (typeof(getsynasset) == "function" and getsynasset)
+        or nil
+    if not getasset or typeof(writefile) ~= "function" then
+        return nil
+    end
+    local folder = "UIAssets"
+    pcall(function()
+        if typeof(isfolder) == "function" and typeof(makefolder) == "function" and not isfolder(folder) then
+            makefolder(folder)
+        end
+    end)
+    local path = folder .. "/" .. fileName
+    local cached = typeof(isfile) == "function" and isfile(path)
+    if not cached then
+        local body = Library._download(url)
+        if not body or body:sub(2, 4) ~= "PNG" then
+            return nil
+        end
+        if not pcall(writefile, path, body) then
+            return nil
+        end
+    end
+    local ok, asset = pcall(getasset, path)
+    if ok and type(asset) == "string" and asset ~= "" then
+        return asset
+    end
+    return nil
+end
+
+function Library._inviteCode(text)
+    if type(text) ~= "string" then
+        return nil
+    end
+    return text:match("discord%.gg/([%w%-_]+)")
+        or text:match("discord%.com/invite/([%w%-_]+)")
+        or text:match("discordapp%.com/invite/([%w%-_]+)")
+end
+
+function Library._commas(n)
+    local text = tostring(math.floor(n)):reverse():gsub("(%d%d%d)", "%1,"):reverse()
+    return (text:gsub("^,", ""))
+end
+
+-- Convierte una fila de enlace en la tarjeta del servidor: icono, nombre y miembros.
+-- Si algo falla (sin internet, invitación vencida) la fila queda como estaba.
+function Library._discordRow(row, titleLabel, textLabel, holder, code)
+    task.spawn(function()
+        local iconShown = false
+        local function refresh()
+            local body = Library._download("https://discord.com/api/v10/invites/" .. code .. "?with_counts=true")
+            if not body then
+                return false
+            end
+            local ok, data = pcall(HttpService.JSONDecode, HttpService, body)
+            if not ok or type(data) ~= "table" or type(data.guild) ~= "table" or not row.Parent then
+                return false
+            end
+            local guild = data.guild
+            titleLabel.Text = guild.name or titleLabel.Text
+            local online, total = data.approximate_presence_count, data.approximate_member_count
+            if online and total then
+                textLabel.RichText = true
+                textLabel.Text = '<font color="#23a55a">●</font> ' .. Library._commas(online) .. " en línea   "
+                    .. '<font color="#80848e">●</font> ' .. Library._commas(total) .. " miembros"
+            end
+            if not iconShown and guild.icon and guild.id then
+                local asset = Library._downloadImage(
+                    "https://cdn.discordapp.com/icons/" .. guild.id .. "/" .. guild.icon .. ".png?size=128",
+                    "discord_" .. guild.id .. "_" .. guild.icon .. ".png"
+                )
+                if asset and row.Parent then
+                    iconShown = true
+                    holder.Visible = false -- fuera el icono de mensaje
+                    local image = create("ImageLabel", {
+                        Name = "ServerIcon",
+                        AnchorPoint = Vector2.new(0, 0.5),
+                        Position = UDim2.new(0, 0, 0.5, 0),
+                        Size = UDim2.fromOffset(32, 32),
+                        BackgroundTransparency = 1,
+                        Image = asset,
+                        ScaleType = Enum.ScaleType.Crop,
+                        Parent = row,
+                    })
+                    corner(image, UDim.new(0, 10))
+                    titleLabel.Position = UDim2.fromOffset(44, 6)
+                    textLabel.Position = UDim2.fromOffset(44, 24)
+                    titleLabel.Size = UDim2.new(1, -84, 0, 18)
+                    textLabel.Size = UDim2.new(1, -84, 0, 15)
+                end
+            end
+            return true
+        end
+        if not refresh() then
+            return
+        end
+        -- Mantiene los miembros en línea al día mientras el menú exista.
+        while row.Parent do
+            task.wait(120)
+            if not row.Parent then
+                break
+            end
+            pcall(refresh)
+        end
+    end)
 end
 
 -- Builds the links card into parent, or nothing when there are no links and
@@ -13470,10 +13599,13 @@ end
 function Window:_homeLinks(parent, opts, order)
     local links = {}
     if opts.Discord then
+        local code = opts.DiscordInfo ~= false and Library._inviteCode(opts.Discord) or nil
         table.insert(links, {
             Icon = opts.DiscordIcon or "message-circle",
             Title = opts.DiscordTitle or "Community",
             Text = opts.Discord,
+            Invite = code,
+            Copy = code and ("https://discord.gg/" .. code) or nil,
         })
     end
     if opts.Website then
@@ -13494,13 +13626,16 @@ function Window:_homeLinks(parent, opts, order)
     self:_homeCaption(card, "Links", 0)
     for index, link in ipairs(links) do
         local action = type(link.Callback) == "function"
-        self:_homeLink(card, index, link.Icon or "link", link.Title or "", link.Text or "", action and "arrow-up-right" or "copy", function()
+        local linkRow, linkTitle, linkText, linkHolder = self:_homeLink(card, index, link.Icon or "link", link.Title or "", link.Text or "", action and "arrow-up-right" or "copy", function()
             if action then
                 safeCall(link.Callback)
             else
                 self:CopyToClipboard(link.Copy or link.Text, link.Title)
             end
         end)
+        if link.Invite then
+            Library._discordRow(linkRow, linkTitle, linkText, linkHolder, link.Invite)
+        end
     end
     local refresh = function() end
     if features ~= false then
