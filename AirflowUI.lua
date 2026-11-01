@@ -100,6 +100,10 @@ local function finishElement(tab, opts, element, frame, kind)
     if opts.Tooltip ~= nil and opts.Tooltip ~= false then
         element:SetTooltip(opts.Tooltip)
     end
+    -- Locked = true (or { Title, Icon }): dimmed veil + lock chip over the control.
+    if Library._applyLock then
+        Library._applyLock(element, frame, opts, kind)
+    end
     function element:Destroy()
         if element._destroyed then
             return
@@ -1242,6 +1246,145 @@ local function reserveRight(title, descLabel, width)
     end
     if descLabel then
         descLabel.Size = UDim2.new(1, -(14 + width), 0, descLabel.Size.Y.Offset)
+    end
+end
+
+-- LOCKED ELEMENTS ---------------------------------------------------------
+-- Any control can be created with Locked = true, or Locked = { Title = "Premium", Icon = "lock" }
+-- (also LockedTitle = "..."). A black veil dims the control, so its name stays
+-- readable behind it, and a small chip with a padlock and a phrase sits on top.
+-- The veil swallows every click, drag and hover. Runtime control:
+--   element:SetLocked(true, "Premium only")   element:SetLocked(false)   element:IsLocked()
+local LOCKABLE = {
+    Toggle = true, Slider = true, Dropdown = true, Keybind = true, ColorPicker = true,
+    Stepper = true, Input = true, TextBox = true, Button = true, ButtonRow = true, OrderList = true,
+}
+
+function Library._applyLock(element, frame, opts, kind)
+    if not frame or not LOCKABLE[kind] then
+        return
+    end
+    local veil, chipText, chipIcon
+    local token = 0
+    local defaultText, defaultIcon = "Locked", "lock"
+    element._locked = false
+
+    local spec = opts.Locked
+    if type(spec) == "table" then
+        defaultText = spec.Title or spec.Text or spec.Name or defaultText
+        defaultIcon = spec.Icon or defaultIcon
+    elseif type(spec) == "string" then
+        defaultText = spec
+    end
+    defaultText = opts.LockedTitle or opts.LockTitle or opts.LockText or defaultText
+    defaultIcon = opts.LockedIcon or defaultIcon
+
+    local function build()
+        veil = create("CanvasGroup", {
+            Name = "LockOverlay",
+            Size = UDim2.fromScale(1, 1),
+            BackgroundColor3 = Color3.new(0, 0, 0),
+            BackgroundTransparency = 0.4,
+            BorderSizePixel = 0,
+            Active = true,
+            GroupTransparency = 1,
+            Visible = false,
+            ZIndex = 60,
+            Parent = frame,
+        })
+        veil:SetAttribute("NoDrag", true)
+        corner(veil)
+
+        local chip = create("Frame", {
+            Name = "LockChip",
+            AnchorPoint = Vector2.new(0.5, 0.5),
+            Position = UDim2.fromScale(0.5, 0.5),
+            Size = UDim2.fromOffset(0, 26),
+            AutomaticSize = Enum.AutomaticSize.X,
+            BackgroundColor3 = Theme.Surface,
+            BackgroundTransparency = 0.08,
+            BorderSizePixel = 0,
+            ZIndex = 61,
+            Parent = veil,
+        })
+        corner(chip, UDim.new(1, 0))
+        stroke(chip, Theme.StrokeHover, 0.15)
+        padding(chip, 10, 13, 0, 0)
+        create("UIListLayout", {
+            FillDirection = Enum.FillDirection.Horizontal,
+            VerticalAlignment = Enum.VerticalAlignment.Center,
+            SortOrder = Enum.SortOrder.LayoutOrder,
+            Padding = UDim.new(0, 6),
+            Parent = chip,
+        })
+        local iconHolder = create("Frame", {
+            Size = UDim2.fromOffset(14, 14),
+            BackgroundTransparency = 1,
+            LayoutOrder = 1,
+            ZIndex = 62,
+            Parent = chip,
+        })
+        chipIcon = create("ImageLabel", {
+            Size = UDim2.fromScale(1, 1),
+            BackgroundTransparency = 1,
+            ImageColor3 = Theme.Accent,
+            ScaleType = Enum.ScaleType.Fit,
+            ZIndex = 62,
+            Parent = iconHolder,
+        })
+        applyIcon(chipIcon, defaultIcon)
+        chipText = label({
+            Size = UDim2.fromOffset(0, 16),
+            AutomaticSize = Enum.AutomaticSize.X,
+            Text = defaultText,
+            TextSize = 12,
+            FontFace = Fonts.Bold,
+            TextTruncate = Enum.TextTruncate.None,
+            LayoutOrder = 2,
+            ZIndex = 62,
+            Parent = chip,
+        })
+    end
+
+    function element:SetLocked(locked, text)
+        locked = locked and true or false
+        if type(text) == "string" and text ~= "" then
+            defaultText = text
+            if chipText then
+                chipText.Text = text
+            end
+        end
+        if locked == element._locked then
+            return
+        end
+        element._locked = locked
+        token += 1
+        local mine = token
+        if locked then
+            if not veil then
+                build()
+            end
+            veil.Visible = true
+            tween(veil, { GroupTransparency = 0 }, 0.25)
+            if element.Open and type(element.SetOpen) == "function" then
+                element:SetOpen(false)
+            end
+        elseif veil then
+            tween(veil, { GroupTransparency = 1 }, 0.2)
+            task.delay(0.22, function()
+                if token == mine and veil and veil.Parent then
+                    veil.Visible = false
+                end
+            end)
+        end
+    end
+
+    function element:IsLocked()
+        return element._locked
+    end
+
+    if opts.Locked then
+        element:SetLocked(true)
     end
 end
 
@@ -4634,17 +4777,18 @@ function Library.Window(_, opts)
     applyIcon(logo, opts.Icon or Assets.Logo, true)
     if (opts.Icon or Assets.Logo) == Assets.Logo then Library._gradientLogo(logo) end
     local subtitle = opts.Version or opts.Subtitle
+    local titleSize = tonumber(opts.TitleSize) or 19
     label({
-        Position = UDim2.new(0, 56, 0.5, subtitle and -15 or -9),
-        Size = UDim2.new(1, -68, 0, 18),
+        Position = UDim2.new(0, 56, 0.5, subtitle and -(titleSize + 3) or -math.floor((titleSize + 4) / 2)),
+        Size = UDim2.new(1, -68, 0, titleSize + 4),
         Text = self.Title,
-        TextSize = 14,
+        TextSize = titleSize,
         FontFace = Fonts.Bold,
         Parent = header,
     })
     if subtitle then
         label({
-            Position = UDim2.new(0, 56, 0.5, 3),
+            Position = UDim2.new(0, 56, 0.5, 4),
             Size = UDim2.new(1, -68, 0, 14),
             Text = tostring(subtitle),
             TextSize = 11,
